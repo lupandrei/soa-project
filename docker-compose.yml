@@ -1,0 +1,126 @@
+version: "3.8"
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  postgres-db:
+    image: postgres:15
+    container_name: postgres-db
+    environment:
+      POSTGRES_USER: user_admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: user_service_db
+    ports:
+      - "5434:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Datele rămân salvate chiar dacă oprești Docker
+
+  postgres-restaurant:
+    image: postgres:15
+    container_name: postgres-restaurant
+    environment:
+      POSTGRES_USER: restaurant_admin
+      POSTGRES_PASSWORD: password123
+      POSTGRES_DB: restaurant_service_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_restaurant_data:/var/lib/postgresql/data
+
+  restaurant-service:
+    build: ./restaurant-service
+    environment:
+      SERVER_PORT: 8084
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-restaurant:5432/restaurant_service_db
+      SPRING_DATASOURCE_USERNAME: restaurant_admin
+      SPRING_DATASOURCE_PASSWORD: password123
+    depends_on:
+      - postgres-restaurant
+      - rabbitmq
+    ports:
+      - "8084:8084"
+
+  user-service-1:
+    build: ./user-service
+    environment:
+      SERVER_PORT: 8081
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/user_service_db
+      JWT_SECRET: bestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkey
+      SPRING_DATASOURCE_USERNAME: user_admin
+      SPRING_DATASOURCE_PASSWORD: password123
+    depends_on:
+      - postgres-db
+    ports:
+      - "8081:8081"
+
+  user-service-2:
+    build: ./user-service
+    environment:
+      SERVER_PORT: 8083
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/user_service_db
+      JWT_SECRET: bestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkey
+      SPRING_DATASOURCE_USERNAME: user_admin
+      SPRING_DATASOURCE_PASSWORD: password123
+    depends_on:
+      - postgres-db
+    ports:
+      - "8083:8083"
+
+  notification-service:
+    build: ./notification-service
+    environment:
+      SERVER_PORT: 8085
+      SPRING_RABBITMQ_HOST: rabbitmq
+    ports:
+      - "8085:8085"
+
+  booking-service:
+    build: ./booking-service
+    environment:
+      SERVER_PORT: 8087
+      SPRING_RABBITMQ_HOST: rabbitmq
+    ports:
+      - "8087:8087"
+
+  api-gateway-1:
+    build: ./api-gateway
+    environment:
+      SERVER_PORT: 8080
+      JWT_SECRET: bestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkey
+      GATEWAY_ID: api-gateway-1
+    depends_on:
+      - user-service-1
+      - user-service-2
+      - restaurant-service
+
+  api-gateway-2:
+    build: ./api-gateway
+    environment:
+      SERVER_PORT: 8080
+      JWT_SECRET: bestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkey
+      GATEWAY_ID: api-gateway-2
+    depends_on:
+      - user-service-1
+      - user-service-2
+      - restaurant-service
+
+  nginx:
+    image: nginx:alpine
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "8082:8082"
+    depends_on:
+      - api-gateway-1
+      - api-gateway-2
+
+volumes:
+  postgres_data:
+  postgres_restaurant_data:

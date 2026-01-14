@@ -1,0 +1,57 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+      routes:
+        # 1. Ruta pentru USER-SERVICE (Scalat pe 2 instanțe)
+        - id: user-service-route
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/auth/**, /api/users/**
+
+        # 2. Ruta pentru BOOKING-SERVICE (Pe portul 8087)
+        - id: booking-service-route
+          uri: http://booking-service:8087
+          predicates:
+            - Path=/bookings/**
+
+        # 3. Ruta pentru NOTIFICATION-SERVICE (Pe portul 8085)
+        - id: notification-service-route
+          uri: http://notification-service:8085
+          predicates:
+            - Path=/notifications/**
+
+        - id: restaurant-service
+          uri: http://restaurant-service:8084
+          predicates:
+            - Path=/restaurants/**
+
+    # Configurarea manuală a instanțelor (Discovery Client simplu)
+    discovery:
+      client:
+        simple:
+          instances:
+            USER-SERVICE:
+              - uri: http://user-service-1:8081
+              - uri: http://user-service-2:8083
+              - uri: http://restaurant-service:8084
