@@ -1,0 +1,31 @@
+<div class="container py-5" style="max-width: 420px;">
+  <h2 class="mb-4">Login</h2>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <form [formGroup]="form" (ngSubmit)="submit()">
+    <div class="mb-3">
+      <label class="form-label">Email</label>
+      <input class="form-control" formControlName="email" type="email" />
+      <small class="text-danger" *ngIf="form.controls.email.touched && form.controls.email.invalid">
+        Email invalid
+      </small>
+    </div>
+
+    <div class="mb-3">
+      <label class="form-label">Parolă</label>
+      <input class="form-control" formControlName="password" type="password" />
+      <small class="text-danger" *ngIf="form.controls.password.touched && form.controls.password.invalid">
+        Parola este obligatorie
+      </small>
+    </div>
+
+    <button class="btn btn-primary w-100" [disabled]="loading">
+      {{ loading ? 'Se loghează...' : 'Login' }}
+    </button>
+  </form>
+
+  <div class="mt-3">
+    <a routerLink="/register">Nu ai cont? Register</a>
+  </div>
+</div>

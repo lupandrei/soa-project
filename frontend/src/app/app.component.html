@@ -1,0 +1,14 @@
+<nav class="navbar navbar-expand navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" routerLink="/login">Restaurant Booking</a>
+
+    <div class="navbar-nav ms-auto" *ngIf="false">
+      <a class="nav-link" routerLink="/login">Login</a>
+      <a class="nav-link" routerLink="/register">Register</a>
+    </div>
+  </div>
+</nav>
+
+<div class="container py-4">
+  <router-outlet></router-outlet>
+</div>
