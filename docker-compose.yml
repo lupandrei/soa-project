@@ -7,6 +7,29 @@ services:
       - "5672:5672"
       - "15672:15672"
 
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+      image: confluentinc/cp-kafka:7.5.0
+      depends_on:
+        - zookeeper
+      ports:
+        - "9092:9092"
+        - "29092:29092"
+      environment:
+        KAFKA_BROKER_ID: 1
+        KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+        # Aici e magia: configurăm două căi de acces
+        KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+        KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+        KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+        KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+
   postgres-db:
     image: postgres:15
     container_name: postgres-db
@@ -49,6 +72,7 @@ services:
     build: ./user-service
     environment:
       SERVER_PORT: 8081
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/user_service_db
       JWT_SECRET: bestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkey
@@ -64,6 +88,7 @@ services:
     environment:
       SERVER_PORT: 8083
       SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres-db:5432/user_service_db
       JWT_SECRET: bestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkeybestsecretkey
       SPRING_DATASOURCE_USERNAME: user_admin
@@ -78,6 +103,7 @@ services:
     environment:
       SERVER_PORT: 8085
       SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8085:8085"
 
@@ -86,6 +112,7 @@ services:
     environment:
       SERVER_PORT: 8087
       SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
     ports:
       - "8087:8087"
 
@@ -99,6 +126,7 @@ services:
       - user-service-1
       - user-service-2
       - restaurant-service
+      - notification-service
 
   api-gateway-2:
     build: ./api-gateway
@@ -110,6 +138,14 @@ services:
       - user-service-1
       - user-service-2
       - restaurant-service
+      - notification-service
+
+  spending-estimator-faas:
+    build: ./function
+    ports:
+      - "8091:8091"
+    environment:
+        - port=8091
 
   nginx:
     image: nginx:alpine

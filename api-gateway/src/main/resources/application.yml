@@ -27,7 +27,7 @@ spring:
         - id: user-service-route
           uri: lb://USER-SERVICE
           predicates:
-            - Path=/auth/**, /api/users/**
+            - Path=/auth/**,/api/users/**
 
         # 2. Ruta pentru BOOKING-SERVICE (Pe portul 8087)
         - id: booking-service-route
@@ -39,12 +39,20 @@ spring:
         - id: notification-service-route
           uri: http://notification-service:8085
           predicates:
-            - Path=/notifications/**
+            - Path=/analytics/**
 
         - id: restaurant-service
           uri: http://restaurant-service:8084
           predicates:
             - Path=/restaurants/**
+
+        - id: spending-faas-route
+          uri: http://spending-estimator-faas:8091
+          predicates:
+            - Path=/faas/estimate/**
+          filters:
+            - RewritePath=/faas/estimate/(?<segment>.*), /$\{segment}
+
 
     # Configurarea manuală a instanțelor (Discovery Client simplu)
     discovery:
@@ -54,4 +62,3 @@ spring:
             USER-SERVICE:
               - uri: http://user-service-1:8081
               - uri: http://user-service-2:8083
-              - uri: http://restaurant-service:8084
